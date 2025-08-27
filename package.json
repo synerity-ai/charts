@@ -1,8 +1,9 @@
 {
   "name": "@synerity/charts",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
-  "description": "A framework-agnostic chart library built with D3 and Tailwind CSS",
+  "description": "A comprehensive, framework-agnostic chart library built with D3 and Tailwind CSS. Features 11 chart types with real-time updates, export functionality, and enterprise-level UI",
+  "homepage": "https://github.com/synerity-ai/synerity-charts-documentation",
   "main": "dist/index.cjs",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
