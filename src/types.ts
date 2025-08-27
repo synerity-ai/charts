@@ -202,6 +202,6 @@ export interface ScatterPlotOptions extends BaseChartOptions {
 
 export interface ChartConfig {
   container: string | HTMLElement;
-  data: ChartData[] | ScatterData[] | BubbleData[] | HeatmapData[] | TreemapData[] | SankeyData | GaugeData | NumberCardData[];
+  data: ChartData[] | MultiLineChartData | ScatterData[] | BubbleData[] | HeatmapData[] | TreemapData[] | SankeyData | GaugeData | NumberCardData[];
   options?: BarChartOptions | LineChartOptions | AreaChartOptions | PieChartOptions | BubbleChartOptions | GaugeChartOptions | HeatmapOptions | TreemapOptions | NumberCardOptions | SankeyOptions | ScatterPlotOptions;
 }

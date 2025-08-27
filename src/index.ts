@@ -17,6 +17,8 @@ export { ExportManager } from './export-manager';
 // Types
 export type {
   ChartData,
+  LineSeriesData,
+  MultiLineChartData,
   ScatterData,
   BubbleData,
   HeatmapData,
