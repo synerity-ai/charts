@@ -1,9 +1,9 @@
 import * as d3 from 'd3';
-import { ChartConfig, ChartData, ScatterData, LineChartOptions } from './types';
+import { ChartConfig, ChartData, ScatterData, LineChartOptions, MultiLineChartData, LineSeriesData } from './types';
 
 export class LineChart {
   private container: HTMLElement;
-  private data: ChartData[];
+  private data: ChartData[] | MultiLineChartData;
   private options: LineChartOptions;
   private svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private chartGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -17,13 +17,20 @@ export class LineChart {
       throw new Error('Container element not found');
     }
 
-    // Ensure data is ChartData[] for line chart
-    // Type checking for line chart data
-    if (!Array.isArray(config.data) || config.data.length === 0 || !('label' in config.data[0])) {
-      throw new Error('Line chart requires ChartData[] format');
+    // Support both single line (ChartData[]) and multi-line (MultiLineChartData) formats
+    if (Array.isArray(config.data)) {
+      if (config.data.length === 0 || !('label' in config.data[0])) {
+        throw new Error('Line chart requires ChartData[] format');
+      }
+      this.data = config.data as ChartData[];
+    } else {
+      // Multi-line format
+      if (!config.data || !('series' in config.data) || !('labels' in config.data)) {
+        throw new Error('Multi-line chart requires MultiLineChartData format with series and labels');
+      }
+      this.data = config.data as unknown as MultiLineChartData;
     }
 
-    this.data = config.data as ChartData[];
     this.options = this.getDefaultOptions(config.options as LineChartOptions);
     
     this.init();
@@ -84,7 +91,7 @@ export class LineChart {
 
   private render(): void {
     // Ensure we have valid data
-    if (!this.data || this.data.length === 0) {
+    if (!this.data) {
       console.warn('No data available for line chart rendering');
       return;
     }
@@ -98,14 +105,27 @@ export class LineChart {
     console.log('Clearing existing line chart elements...');
     this.chartGroup.selectAll('*').remove();
 
+    // Determine if this is single line or multi-line
+    const isMultiLine = !Array.isArray(this.data) && 'series' in this.data;
+    
+    if (isMultiLine) {
+      this.renderMultiLine(chartWidth, chartHeight);
+    } else {
+      this.renderSingleLine(chartWidth, chartHeight);
+    }
+  }
+
+  private renderSingleLine(chartWidth: number, chartHeight: number): void {
+    const singleData = this.data as ChartData[];
+
     // Create scales
     const xScale = d3.scalePoint()
-      .domain(this.data.map((d: ChartData) => d.label))
+      .domain(singleData.map((d: ChartData) => d.label))
       .range([0, chartWidth])
       .padding(0.5);
 
     const yScale = d3.scaleLinear()
-      .domain([0, d3.max(this.data, (d: ChartData) => d.value) || 0])
+      .domain([0, d3.max(singleData, (d: ChartData) => d.value) || 0])
       .range([chartHeight, 0]);
 
     // Add grid lines if enabled
@@ -130,7 +150,7 @@ export class LineChart {
 
     // Create the line path
     const linePath = this.chartGroup.append('path')
-      .datum(this.data)
+      .datum(singleData)
       .attr('class', 'line')
       .attr('fill', 'none')
       .attr('stroke', this.options.colors![0])
@@ -152,7 +172,7 @@ export class LineChart {
     // Add data points if enabled
     if (this.options.showPoints) {
       const points = this.chartGroup.selectAll('.point')
-        .data(this.data)
+        .data(singleData)
         .enter()
         .append('circle')
         .attr('class', 'point')
@@ -201,6 +221,156 @@ export class LineChart {
       .attr('stroke-width', 1);
   }
 
+  private renderMultiLine(chartWidth: number, chartHeight: number): void {
+    const multiData = this.data as MultiLineChartData;
+    const series = multiData.series;
+    const labels = multiData.labels;
+
+    // Create scales
+    const xScale = d3.scalePoint()
+      .domain(labels)
+      .range([0, chartWidth])
+      .padding(0.5);
+
+    // Find the maximum value across all series
+    const maxValue = d3.max(series.flatMap((s: LineSeriesData) => s.data.map((d: ChartData) => d.value))) || 0;
+    const yScale = d3.scaleLinear()
+      .domain([0, maxValue])
+      .range([chartHeight, 0]);
+
+    // Add grid lines if enabled
+    if (this.options.showGrid) {
+      this.chartGroup.append('g')
+        .attr('class', 'grid')
+        .call(d3.axisLeft(yScale)
+          .tickSize(-chartWidth)
+          .tickFormat(() => '')
+        )
+        .selectAll('line')
+        .attr('stroke', '#E5E7EB')
+        .attr('stroke-width', 1)
+        .attr('stroke-dasharray', '3,3');
+    }
+
+    // Create line generator
+    const line = d3.line<ChartData>()
+      .x((d: ChartData) => xScale(d.label)!)
+      .y((d: ChartData) => yScale(d.value))
+      .curve(this.getCurveFunction());
+
+    // Create lines for each series
+    series.forEach((seriesData: LineSeriesData, index: number) => {
+      const color = seriesData.color || this.options.colors![index % this.options.colors!.length];
+      
+      // Create the line path
+      const linePath = this.chartGroup.append('path')
+        .datum(seriesData.data)
+        .attr('class', `line-series-${index}`)
+        .attr('fill', 'none')
+        .attr('stroke', color)
+        .attr('stroke-width', this.options.strokeWidth!)
+        .attr('d', line);
+
+      // Animate line if enabled
+      if (this.options.animate) {
+        const totalLength = linePath.node()?.getTotalLength() || 0;
+        linePath
+          .attr('stroke-dasharray', totalLength)
+          .attr('stroke-dashoffset', totalLength)
+          .transition()
+          .delay(index * 200)
+          .duration(1000)
+          .ease(d3.easeCubicOut)
+          .attr('stroke-dashoffset', 0);
+      }
+
+              // Add data points if enabled
+        if (this.options.showPoints) {
+          const points = this.chartGroup.selectAll(`.point-series-${index}`)
+            .data(seriesData.data)
+            .enter()
+            .append('circle')
+            .attr('class', `point-series-${index}`)
+            .attr('cx', (d: any) => xScale(d.label)!)
+            .attr('cy', (d: any) => yScale(d.value))
+            .attr('r', this.options.pointRadius!)
+            .attr('fill', color)
+            .attr('stroke', 'white')
+            .attr('stroke-width', 2)
+            .style('opacity', this.options.animate ? 0 : 1);
+
+        // Animate points if enabled
+        if (this.options.animate) {
+          points.transition()
+            .delay((d, i) => index * 200 + i * 100)
+            .duration(300)
+            .style('opacity', 1);
+        }
+      }
+    });
+
+    // Add axes
+    const xAxis = d3.axisBottom(xScale);
+    const yAxis = d3.axisLeft(yScale);
+
+    this.chartGroup.append('g')
+      .attr('class', 'x-axis')
+      .attr('transform', `translate(0, ${chartHeight})`)
+      .call(xAxis)
+      .selectAll('text')
+      .attr('class', 'text-sm fill-gray-600')
+      .style('text-anchor', 'middle');
+
+    this.chartGroup.append('g')
+      .attr('class', 'y-axis')
+      .call(yAxis)
+      .selectAll('text')
+      .attr('class', 'text-sm fill-gray-600');
+
+    // Style axes
+    this.chartGroup.selectAll('.x-axis line, .y-axis line')
+      .attr('stroke', '#D1D5DB')
+      .attr('stroke-width', 1);
+
+    this.chartGroup.selectAll('.x-axis path, .y-axis path')
+      .attr('stroke', '#D1D5DB')
+      .attr('stroke-width', 1);
+
+    // Add legend if enabled
+    if (this.options.showLegend) {
+      this.addLegend(series, chartWidth, chartHeight);
+    }
+  }
+
+  private addLegend(series: LineSeriesData[], chartWidth: number, chartHeight: number): void {
+    const legendGroup = this.chartGroup.append('g')
+      .attr('class', 'legend')
+      .attr('transform', `translate(${chartWidth - 100}, 10)`);
+
+    const legendItems = legendGroup.selectAll('.legend-item')
+      .data(series)
+      .enter()
+      .append('g')
+      .attr('class', 'legend-item')
+      .attr('transform', (d, i) => `translate(0, ${i * 20})`);
+
+    // Add legend lines
+    legendItems.append('line')
+      .attr('x1', 0)
+      .attr('y1', 0)
+      .attr('x2', 20)
+      .attr('y2', 0)
+      .attr('stroke', (d, i) => d.color || this.options.colors![i % this.options.colors!.length])
+      .attr('stroke-width', 2);
+
+    // Add legend text
+    legendItems.append('text')
+      .attr('x', 25)
+      .attr('y', 4)
+      .attr('class', 'text-sm fill-gray-700')
+      .text(d => d.name);
+  }
+
   private getCurveFunction(): d3.CurveFactory {
     switch (this.options.curveType) {
       case 'linear':
@@ -223,15 +393,25 @@ export class LineChart {
     }
   }
 
-  public update(newData: ChartData[]): void {
+  public update(newData: ChartData[] | MultiLineChartData): void {
     // Validate the new data
-    if (!newData || !Array.isArray(newData) || newData.length === 0) {
+    if (!newData) {
       console.warn('Invalid data provided to line chart update');
       return;
     }
     
     console.log('Updating line chart with new data:', newData);
-    this.data = [...newData]; // Create a copy to avoid reference issues
+    this.data = newData; // Create a copy to avoid reference issues
+    this.render();
+  }
+
+  public updateOptions(newOptions: Partial<LineChartOptions>): void {
+    console.log('Updating line chart options:', newOptions);
+    
+    // Update the options
+    this.options = { ...this.options, ...newOptions };
+    
+    // Re-render the chart with new options
     this.render();
   }
 

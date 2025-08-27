@@ -4,6 +4,17 @@ export interface ChartData {
   color?: string;
 }
 
+export interface LineSeriesData {
+  name: string;
+  data: ChartData[];
+  color?: string;
+}
+
+export interface MultiLineChartData {
+  series: LineSeriesData[];
+  labels: string[];
+}
+
 export interface ScatterData {
   x: number;
   y: number;
@@ -103,6 +114,9 @@ export interface LineChartOptions extends BaseChartOptions {
   pointRadius?: number;
   showArea?: boolean;
   areaOpacity?: number;
+  showLegend?: boolean;
+  legendPosition?: 'top' | 'bottom' | 'left' | 'right';
+  multiLine?: boolean;
 }
 
 export interface AreaChartOptions extends BaseChartOptions {
