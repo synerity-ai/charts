@@ -20,6 +20,10 @@ export interface ScatterData {
   y: number;
   label?: string;
   color?: string;
+  // Additional properties for enhanced mapping
+  size?: number;
+  category?: string;
+  [key: string]: any; // Allow additional properties for mapping
 }
 
 export interface BubbleData {
@@ -127,6 +131,31 @@ export interface AreaChartOptions extends BaseChartOptions {
   strokeWidth?: number;
   pointRadius?: number;
   areaOpacity?: number;
+  // Enhanced features
+  interpolation?: 'linear' | 'step' | 'cubic';
+  gradient?: {
+    enabled: boolean;
+    type: 'linear' | 'radial';
+    colors: string[];
+  };
+  stacking?: {
+    enabled: boolean;
+    type: 'stack' | 'stream' | 'percentage';
+  };
+  zoom?: {
+    enabled: boolean;
+    minZoom: number;
+    maxZoom: number;
+  };
+  tooltip?: {
+    enabled: boolean;
+    format?: (data: ChartData) => string;
+  };
+  animation?: {
+    duration: number;
+    easing: string;
+    delay?: number;
+  };
 }
 
 export interface PieChartOptions extends BaseChartOptions {
@@ -140,6 +169,33 @@ export interface PieChartOptions extends BaseChartOptions {
   explodeOffset?: number;
   showLegend?: boolean;
   legendPosition?: 'top' | 'bottom' | 'left' | 'right';
+  // Enhanced features for Phase 1
+  variant?: 'pie' | 'donut';
+  labels?: {
+    enabled: boolean;
+    position: 'inside' | 'outside' | 'callout';
+    format: string;
+    fontSize?: number;
+    fontWeight?: string;
+  };
+  animation?: {
+    duration: number;
+    easing: string;
+    explodeOnClick: boolean;
+    entranceDelay?: number;
+  };
+  legend?: {
+    interactive: boolean;
+    position: 'top' | 'bottom' | 'left' | 'right';
+    showValues?: boolean;
+    showPercentages?: boolean;
+  };
+  interactivity?: {
+    hoverEffects: boolean;
+    clickToExplode: boolean;
+    tooltipEnabled: boolean;
+    tooltipFormat?: (data: ChartData) => string;
+  };
 }
 
 export interface BubbleChartOptions extends BaseChartOptions {
@@ -198,6 +254,52 @@ export interface ScatterPlotOptions extends BaseChartOptions {
   showTrendLine?: boolean;
   pointRadius?: number;
   pointOpacity?: number;
+  // Enhanced features for Phase 1
+  trendLine?: {
+    enabled: boolean;
+    type: 'linear' | 'polynomial' | 'custom';
+    degree?: number;
+    equation?: string;
+    color?: string;
+    strokeWidth?: number;
+    opacity?: number;
+  };
+  clustering?: {
+    enabled: boolean;
+    algorithm: 'kmeans' | 'dbscan';
+    maxClusters?: number;
+    showClusterBoundaries?: boolean;
+    clusterColors?: string[];
+  };
+  mapping?: {
+    sizeField?: string;
+    colorField?: string;
+    shapeField?: string;
+    sizeRange?: [number, number];
+    colorScale?: 'sequential' | 'diverging' | 'categorical';
+  };
+  selection?: {
+    enabled: boolean;
+    type: 'lasso' | 'rectangle' | 'point';
+    multipleSelection?: boolean;
+    selectionColor?: string;
+  };
+  zoom?: {
+    enabled: boolean;
+    minZoom: number;
+    maxZoom: number;
+    enablePan?: boolean;
+  };
+  tooltip?: {
+    enabled: boolean;
+    format?: (data: ScatterData) => string;
+    showAllFields?: boolean;
+  };
+  animation?: {
+    duration: number;
+    easing: string;
+    entranceDelay?: number;
+  };
 }
 
 export interface ChartConfig {

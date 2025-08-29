@@ -44,6 +44,31 @@ export class AreaChart {
       strokeWidth: 2,
       pointRadius: 4,
       areaOpacity: 0.3,
+      // Enhanced features defaults
+      interpolation: 'linear',
+      gradient: {
+        enabled: false,
+        type: 'linear',
+        colors: ['#3B82F6', '#1E40AF']
+      },
+      stacking: {
+        enabled: false,
+        type: 'stack'
+      },
+      zoom: {
+        enabled: false,
+        minZoom: 0.5,
+        maxZoom: 5
+      },
+      tooltip: {
+        enabled: true,
+        format: (data: ChartData) => `${data.label}: ${data.value}`
+      },
+      animation: {
+        duration: 1000,
+        easing: 'cubic-out',
+        delay: 0
+      },
       ...userOptions
     };
   }
@@ -53,6 +78,36 @@ export class AreaChart {
     this.createScales();
     this.createGenerators();
     this.render();
+    
+    // Add zoom functionality if enabled
+    if (this.options.zoom?.enabled) {
+      this.setupZoom();
+    }
+  }
+
+  private setupZoom(): void {
+    const chartWidth = this.options.width! - this.options.margin!.left - this.options.margin!.right;
+    const chartHeight = this.options.height! - this.options.margin!.top - this.options.margin!.bottom;
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([this.options.zoom!.minZoom, this.options.zoom!.maxZoom])
+      .on('zoom', (event) => {
+        const { transform } = event;
+        
+        // Apply zoom to chart group
+        this.chartGroup.attr('transform', transform);
+        
+        // Update axes with zoom
+        this.chartGroup.select('.x-axis')
+          .call(d3.axisBottom(this.xScale).tickSize(-chartHeight) as any)
+          .call((g: any) => g.select('.domain').remove());
+          
+        this.chartGroup.select('.y-axis')
+          .call(d3.axisLeft(this.yScale).tickSize(-chartWidth) as any)
+          .call((g: any) => g.select('.domain').remove());
+      });
+
+    this.svg.call(zoom as any);
   }
 
   private createSVG(): void {
@@ -182,22 +237,104 @@ export class AreaChart {
   }
 
   private addArea(): void {
+    // Create gradient if enabled
+    if (this.options.gradient?.enabled) {
+      this.createGradient();
+    }
+
     const area = this.chartGroup.append('path')
       .datum(this.data)
       .attr('class', 'area')
-      .attr('fill', this.options.colors![0])
+      .attr('fill', this.getAreaFill())
       .attr('opacity', this.options.areaOpacity || 0.3)
       .style('opacity', this.options.animate ? 0 : 1);
 
     if (this.options.animate) {
       area.transition()
-        .duration(1000)
-        .ease(d3.easeCubicOut)
+        .duration(this.options.animation?.duration || 1000)
+        .ease(this.getEasingFunction())
         .style('opacity', 1);
     }
 
     // Set the area path
     area.attr('d', this.areaGenerator);
+
+    // Add tooltip if enabled
+    if (this.options.tooltip?.enabled) {
+      this.addTooltip(area);
+    }
+  }
+
+  private createGradient(): void {
+    const gradientId = `area-gradient-${Math.random().toString(36).substr(2, 9)}`;
+    const gradient = this.svg.append('defs')
+      .append('linearGradient')
+      .attr('id', gradientId)
+      .attr('gradientUnits', 'userSpaceOnUse')
+      .attr('x1', '0%')
+      .attr('y1', '0%')
+      .attr('x2', '0%')
+      .attr('y2', '100%');
+
+    const colors = this.options.gradient?.colors || ['#3B82F6', '#1E40AF'];
+    colors.forEach((color, index) => {
+      gradient.append('stop')
+        .attr('offset', `${(index / (colors.length - 1)) * 100}%`)
+        .attr('stop-color', color);
+    });
+
+    // Store gradient ID for use in fill
+    (this as any).gradientId = gradientId;
+  }
+
+  private getAreaFill(): string {
+    if (this.options.gradient?.enabled && (this as any).gradientId) {
+      return `url(#${(this as any).gradientId})`;
+    }
+    return this.options.colors![0];
+  }
+
+  private getEasingFunction(): any {
+    const easing = this.options.animation?.easing || 'cubic-out';
+    switch (easing) {
+      case 'linear': return d3.easeLinear;
+      case 'cubic-in': return d3.easeCubicIn;
+      case 'cubic-out': return d3.easeCubicOut;
+      case 'cubic-in-out': return d3.easeCubicInOut;
+      case 'elastic': return d3.easeElastic;
+      case 'bounce': return d3.easeBounce;
+      default: return d3.easeCubicOut;
+    }
+  }
+
+  private addTooltip(element: d3.Selection<SVGPathElement, ChartData[], null, undefined>): void {
+    const tooltip = d3.select('body').append('div')
+      .attr('class', 'area-chart-tooltip')
+      .style('position', 'absolute')
+      .style('background', 'rgba(0, 0, 0, 0.8)')
+      .style('color', 'white')
+      .style('padding', '8px 12px')
+      .style('border-radius', '4px')
+      .style('font-size', '12px')
+      .style('pointer-events', 'none')
+      .style('opacity', 0)
+      .style('z-index', 1000);
+
+    element
+      .on('mouseover', (event: any, d: any) => {
+        const format = this.options.tooltip?.format || ((data: ChartData) => `${data.label}: ${data.value}`);
+        tooltip.transition()
+          .duration(200)
+          .style('opacity', 1);
+        tooltip.html(format(d))
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px');
+      })
+      .on('mouseout', () => {
+        tooltip.transition()
+          .duration(500)
+          .style('opacity', 0);
+      });
   }
 
   private addLine(): void {
@@ -272,6 +409,60 @@ export class AreaChart {
     }
     if (this.container) {
       d3.select(this.container).selectAll('*').remove();
+    }
+  }
+
+  // Enhanced feature methods
+  public enableGradient(colors: string[] = ['#3B82F6', '#1E40AF']): void {
+    this.options.gradient = {
+      enabled: true,
+      type: 'linear',
+      colors
+    };
+    this.render();
+  }
+
+  public disableGradient(): void {
+    this.options.gradient!.enabled = false;
+    this.render();
+  }
+
+  public enableZoom(minZoom: number = 0.5, maxZoom: number = 5): void {
+    this.options.zoom = {
+      enabled: true,
+      minZoom,
+      maxZoom
+    };
+    this.setupZoom();
+  }
+
+  public disableZoom(): void {
+    this.options.zoom!.enabled = false;
+    // Remove zoom behavior
+    this.svg.on('.zoom', null);
+  }
+
+  public setTooltipFormat(format: (data: ChartData) => string): void {
+    this.options.tooltip = {
+      enabled: true,
+      format
+    };
+    this.render();
+  }
+
+  public setAnimation(duration: number, easing: string = 'cubic-out'): void {
+    this.options.animation = {
+      duration,
+      easing,
+      delay: 0
+    };
+  }
+
+  public resetZoom(): void {
+    if (this.options.zoom?.enabled) {
+      this.svg.transition()
+        .duration(750)
+        .call(d3.zoom().transform as any, d3.zoomIdentity);
     }
   }
 }
