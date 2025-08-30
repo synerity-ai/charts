@@ -147,6 +147,7 @@ export class AreaChart {
 
   private createGenerators(): void {
     const curve = this.getCurveFunction();
+    console.log('Creating generators with curve type:', this.options.curveType, 'curve function:', curve.name);
 
     // Create area generator
     this.areaGenerator = d3.area<ChartData>()
@@ -163,16 +164,35 @@ export class AreaChart {
   }
 
   private getCurveFunction(): d3.CurveFactory {
+    console.log('Getting curve function for type:', this.options.curveType);
     switch (this.options.curveType) {
-      case 'linear': return d3.curveLinear;
-      case 'step': return d3.curveStep;
-      case 'stepAfter': return d3.curveStepAfter;
-      case 'stepBefore': return d3.curveStepBefore;
-      case 'basis': return d3.curveBasis;
-      case 'cardinal': return d3.curveCardinal;
-      case 'catmullRom': return d3.curveCatmullRom;
+      case 'linear': 
+        console.log('Using linear curve');
+        return d3.curveLinear;
+      case 'step': 
+        console.log('Using step curve');
+        return d3.curveStep;
+      case 'stepAfter': 
+        console.log('Using stepAfter curve');
+        return d3.curveStepAfter;
+      case 'stepBefore': 
+        console.log('Using stepBefore curve');
+        return d3.curveStepBefore;
+      case 'basis': 
+        console.log('Using basis curve');
+        return d3.curveBasis;
+      case 'cardinal': 
+        console.log('Using cardinal curve');
+        return d3.curveCardinal;
+      case 'catmullRom': 
+        console.log('Using catmullRom curve');
+        return d3.curveCatmullRom;
       case 'monotoneX':
-      default: return d3.curveMonotoneX;
+        console.log('Using monotoneX curve');
+        return d3.curveMonotoneX;
+      default: 
+        console.log('Using default monotoneX curve');
+        return d3.curveMonotoneX;
     }
   }
 
@@ -389,6 +409,21 @@ export class AreaChart {
     this.data = [...newData];
     this.createScales();
     this.createGenerators();
+    this.render();
+  }
+
+  public updateOptions(newOptions: Partial<AreaChartOptions>): void {
+    const oldCurveType = this.options.curveType;
+    this.options = { ...this.options, ...newOptions };
+    
+    console.log('Updating options, old curve type:', oldCurveType, 'new curve type:', newOptions.curveType);
+    
+    // If curve type changed, recreate generators
+    if (newOptions.curveType && newOptions.curveType !== oldCurveType) {
+      console.log('Curve type changed, recreating generators');
+      this.createGenerators();
+    }
+    
     this.render();
   }
 

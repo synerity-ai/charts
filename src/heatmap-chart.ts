@@ -106,8 +106,13 @@ export class HeatmapChart {
       this.colorScale = d3.scaleSequential()
         .domain(this.options.colorDomain || [minValue, maxValue])
         .interpolator(d3.interpolateRdBu);
+    } else if (this.options.colorScale === 'categorical') {
+      // For categorical, use a different color scheme
+      this.colorScale = d3.scaleSequential()
+        .domain(this.options.colorDomain || [minValue, maxValue])
+        .interpolator(d3.interpolateViridis);
     } else {
-      // Categorical - use sequential for now
+      // Default to sequential
       this.colorScale = d3.scaleSequential()
         .domain([minValue, maxValue])
         .interpolator(d3.interpolateBlues);
@@ -238,13 +243,19 @@ export class HeatmapChart {
     return brightness > 128 ? '#000000' : '#FFFFFF';
   }
 
-  public update(newData: HeatmapData[]): void {
+  public update(newData: HeatmapData[], newOptions?: HeatmapOptions): void {
     if (!newData || !Array.isArray(newData) || newData.length === 0) {
       console.warn('Invalid data provided to heatmap chart update');
       return;
     }
     
     this.data = [...newData];
+    
+    // Update options if provided
+    if (newOptions) {
+      this.options = { ...this.options, ...newOptions };
+    }
+    
     this.createScales();
     this.render();
   }

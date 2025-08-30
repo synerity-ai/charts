@@ -78,12 +78,16 @@ export class GaugeChart {
       return;
     }
 
+    console.log('Rendering gauge chart with type:', this.options.type);
+
     // Clear existing chart elements
     this.chartGroup.selectAll('*').remove();
 
     if (this.options.type === 'radial') {
+      console.log('Rendering radial gauge');
       this.renderRadialGauge();
     } else {
+      console.log('Rendering linear gauge');
       this.renderLinearGauge();
     }
   }
@@ -303,12 +307,14 @@ export class GaugeChart {
   }
 
   public update(newData: GaugeData): void {
+    console.log('GaugeChart update called with:', newData);
     if (!newData) {
       console.warn('Invalid data provided to gauge chart update');
       return;
     }
     
     this.data = { ...newData };
+    console.log('Rendering gauge chart after update');
     this.render();
   }
 

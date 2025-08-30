@@ -402,6 +402,7 @@ export class PieChart {
   }
 
   public setVariant(variant: 'pie' | 'donut'): void {
+    console.log('PieChart setVariant called with:', variant);
     this.options.variant = variant;
     this.render();
   }

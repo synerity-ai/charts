@@ -528,6 +528,7 @@ export class ScatterPlot {
 
   // Public methods
   public update(newData: ScatterData[]): void {
+    console.log('ScatterPlot update called with:', newData);
     if (!newData || !Array.isArray(newData) || newData.length === 0) {
       console.warn('Invalid data provided to scatter plot update');
       return;
@@ -536,6 +537,7 @@ export class ScatterPlot {
     this.data = [...newData];
     this.selectedPoints.clear();
     this.clusters = [];
+    console.log('Rendering scatter plot with new data');
     this.render();
   }
 
