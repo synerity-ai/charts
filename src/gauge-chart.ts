@@ -107,9 +107,9 @@ export class GaugeChart {
       .startAngle((d: any) => d.startAngle)
       .endAngle((d: any) => d.endAngle);
 
-    // Create background arc
+    // Create background arc (top half of circle)
     this.chartGroup.append('path')
-      .datum({ startAngle: -Math.PI / 2, endAngle: Math.PI / 2 })
+      .datum({ startAngle: -Math.PI * 0.8, endAngle: Math.PI * 0.8 })
       .attr('class', 'gauge-background')
       .attr('d', arc as any)
       .attr('fill', '#E5E7EB');
@@ -119,7 +119,7 @@ export class GaugeChart {
 
     // Create value arc with proper data structure
     const valuePath = this.chartGroup.append('path')
-      .datum({ startAngle: -Math.PI / 2, endAngle: -Math.PI / 2 })
+      .datum({ startAngle: -Math.PI * 0.8, endAngle: -Math.PI * 0.8 })
       .attr('class', 'gauge-value')
       .attr('d', arc as any)
       .attr('fill', this.getValueColor())
@@ -140,7 +140,7 @@ export class GaugeChart {
         .style('opacity', 1);
     } else {
       valuePath
-        .datum({ startAngle: -Math.PI / 2, endAngle: valueAngle })
+        .datum({ startAngle: -Math.PI * 0.8, endAngle: valueAngle })
         .attr('d', arc as any);
     }
 
@@ -293,7 +293,7 @@ export class GaugeChart {
 
   private getValueAngle(): number {
     const percentage = (this.data.value - this.options.min!) / (this.options.max! - this.options.min!);
-    return -Math.PI / 2 + (percentage * Math.PI);
+    return -Math.PI * 0.8 + (percentage * Math.PI * 1.6);
   }
 
   private getValueColor(): string {
