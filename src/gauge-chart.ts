@@ -67,9 +67,11 @@ export class GaugeChart {
       .attr('preserveAspectRatio', 'xMidYMid meet')
       .style('display', 'block');
 
-    // Create chart group
+    // Create chart group with margin offset
+    const centerX = this.options.width! / 2;
+    const centerY = this.options.height! / 2;
     this.chartGroup = this.svg.append('g')
-      .attr('transform', `translate(${this.options.width! / 2}, ${this.options.height! / 2})`);
+      .attr('transform', `translate(${centerX}, ${centerY})`);
   }
 
   private render(): void {
@@ -93,7 +95,9 @@ export class GaugeChart {
   }
 
   private renderRadialGauge(): void {
-    const radius = Math.min(this.options.width!, this.options.height!) / 2 - 40;
+    const availableWidth = this.options.width! - this.options.margin!.left - this.options.margin!.right;
+    const availableHeight = this.options.height! - this.options.margin!.top - this.options.margin!.bottom;
+    const radius = Math.min(availableWidth, availableHeight) / 2 - 20;
     const arcWidth = this.options.arcWidth!;
 
     // Create arc generator
@@ -178,7 +182,7 @@ export class GaugeChart {
       this.chartGroup.append('text')
         .attr('class', 'gauge-label')
         .attr('x', 0)
-        .attr('y', radius + 30)
+        .attr('y', radius + 20)
         .attr('text-anchor', 'middle')
         .attr('font-size', '14px')
         .attr('font-weight', '500')
